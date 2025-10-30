@@ -1,11 +1,9 @@
-//ask player name
-// ask how many matchsticks they want
-// check if its between 10 and 100
-// give it back to user
-// R0 - Name
-// R1 - StartingMatchSticks
-// R11 - Text
-// R12 - Player
+// R0 – Player Name
+// R1 – Remaining matchsticks
+// R2 – Matchsticks to remove (input each turn)
+// R9 – Upper bounds for checks (100 or 7)
+// R10 – Lower bounds (10 or 1)
+// R11 – Text messages
 InitialiseRegisters:
       mov r11, #Intro
       mov r0, #Name
@@ -26,18 +24,54 @@ NumberInput:
       bgt NumberInput
       cmp r1, r10
       blt NumberInput
-Game:
+PreGameIntro:
       mov r11, #PlayerOneIs
       str r11, .WriteString
       str r0, .WriteString
       mov r11, #StartingMatchsticks
       str r11, .WriteString
       str r1, .WriteUnsignedNum
-      halt
+GameLoop:
+      mov r11, #PlayerMatchsticksRemaining1
+      str r11, .WriteString
+      str r0, .WriteString
+      mov r11, #PlayerMatchsticksRemaining2
+      str r11, .WriteString
+      str r1, .WriteUnsignedNum
+      mov r11, #PlayerMatchsticksRemaining3
+      str r11, .WriteString
+      mov r11, #PlayerMatchsticksRemaining4
+      str r11, .WriteString
+      ldr r2, .InputNum
+      mov r9, #7
+      mov r10, #1
+      cmp r2, r9
+      bgt InvalidInput
+      cmp r2, r10
+      blt InvalidInput
+      cmp r2, r1
+      bgt InvalidInput
+      sub r1, r1, r2
+      cmp r1, #0
+      beq GameOver
+      b GameLoop
+InvalidInput:
+      mov r11, #sauce
+      str r11, .WriteString
+      b GameLoop
+GameOver:
+      mov r11, #EndMessage
+      str r11, .WriteString
+      Halt
 Intro: .ASCIZ "Welcome Player!\nPlease enter your name: "
-Name: .BLOCK 128
 MatchstickRequest1: .ASCIZ "\n\nHow many matchsticks to start with?: "
 MatchstickRequest2: .ASCIZ "\n[input MUST be between 10 - 100]"
-PlayerOneIs: .ASCIZ "\n\n\n\nPlayer One Is: "
+PlayerOneIs: .ASCIZ "\n\n\nPlayer One Is: "
 StartingMatchsticks: .ASCIZ "\nStarting Matchsticks: "
-//delta 220
+PlayerMatchsticksRemaining1: .ASCIZ "\n\nPlayer "
+PlayerMatchsticksRemaining2: .ASCIZ ", there are "
+PlayerMatchsticksRemaining3: .ASCIZ " matchsticks remaining. "
+PlayerMatchsticksRemaining4: .ASCIZ "How many matchsticks would you like to remove?\n(1 – 7): "
+sauce: .ASCIZ "\nInvalid number — must be between 1 and 7, and not greater than remaining.\n"
+EndMessage: .ASCIZ "\n\nGame Over — all matchsticks have been taken!\n"
+Name: .BLOCK 128
