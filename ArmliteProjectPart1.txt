@@ -1,0 +1,43 @@
+//ask player name
+// ask how many matchsticks they want
+// check if its between 10 and 100
+// give it back to user
+// R0 - Name
+// R1 - StartingMatchSticks
+// R11 - Text
+// R12 - Player
+InitialiseRegisters:
+      mov r11, #Intro
+      mov r0, #Name
+      mov r10, #10
+      mov r9, #100
+NameInput:
+      str r11, .WriteString
+      str r0, .ReadString
+      str r0, .WriteString
+PreNumberInput:
+      mov r11, #MatchstickRequest1
+      str r11, .WriteString
+NumberInput:
+      mov r11, #MatchstickRequest2
+      str r11, .WriteString
+      ldr r1, .InputNum
+      cmp r1, r9
+      bgt NumberInput
+      cmp r1, r10
+      blt NumberInput
+Game:
+      mov r11, #PlayerOneIs
+      str r11, .WriteString
+      str r0, .WriteString
+      mov r11, #StartingMatchsticks
+      str r11, .WriteString
+      str r1, .WriteUnsignedNum
+      halt
+Intro: .ASCIZ "Welcome Player!\nPlease enter your name: "
+Name: .BLOCK 128
+MatchstickRequest1: .ASCIZ "\n\nHow many matchsticks to start with?: "
+MatchstickRequest2: .ASCIZ "\n[input MUST be between 10 - 100]"
+PlayerOneIs: .ASCIZ "\n\n\n\nPlayer One Is: "
+StartingMatchsticks: .ASCIZ "\nStarting Matchsticks: "
+//delta 220
