@@ -1,18 +1,40 @@
 // R0 – Player Name
 // R1 – Remaining matchsticks
 // R2 – Matchsticks to remove (input each turn)
-// R9 – Upper bounds for checks (100 or 7)
+// R3 – Temporary comparison
+// R4 – Input char (for play again)
+// R5 – ASCII comparison value
+// R6 – Random buffer (AI)
+// R7 – DesiredInput address
+// R8 – Text temp
+// R9 – Upper bounds (100 or 7)
 // R10 – Lower bounds (10 or 1)
 // R11 – Text messages
-InitialiseRegisters:
+// R12 – General reset
+NameInput:
       mov r11, #Intro
       mov r0, #Name
-      mov r10, #10
-      mov r9, #100
-NameInput:
       str r11, .WriteString
       str r0, .ReadString
       str r0, .WriteString
+      b InitialiseRegisters
+ClearRegisters:
+      mov r12, #0
+      mov r11, #0
+      mov r10, #0
+      mov r9, #0
+      mov r8, #0
+      mov r7, #0
+      mov r6, #0
+      mov r5, #0
+      mov r4, #0
+      mov r3, #0
+      mov r2, #0
+      mov r1, #0
+      b InitialiseRegisters
+InitialiseRegisters:
+      mov r10, #10
+      mov r9, #100
 PreNumberInput:
       mov r11, #MatchstickRequest1
       str r11, .WriteString
@@ -31,7 +53,7 @@ PreGameIntro:
       mov r11, #StartingMatchsticks
       str r11, .WriteString
       str r1, .WriteUnsignedNum
-GameLoop:
+GameLoopPlayer:
       mov r11, #PlayerMatchsticksRemaining1
       str r11, .WriteString
       str r0, .WriteString
@@ -52,26 +74,112 @@ GameLoop:
       cmp r2, r1
       bgt InvalidInput
       sub r1, r1, r2
+// print what player has done
+      mov r11, #PlayerHasDone1
+      str r11, .WriteString
+      str r2, .WriteUnsignedNum
+      mov r11, #AiHasDone2
+      str r11, .WriteString
+// check remaining matchsticks for win/draw
+      cmp r1, #1
+      beq PlayerWin
       cmp r1, #0
-      beq GameOver
-      b GameLoop
+      beq Draw
+      b GameLoopAi
+GameLoopAi: 
+      ldr r6, .Random   // Use r6 instead of r2 for AI’s random
+      and r6, r6, #7
+      cmp r6, #0
+      beq GameLoopAi
+      mov r9, #7
+      cmp r1, r9
+      blt GameLoopAi2
+      b GameLoopAi3
+GameLoopAi2:
+      cmp r6, r1
+      bgt GameLoopAi
+      b GameLoopAi3
+GameLoopAi3:
+      sub r1, r1, r6
+      mov r11, #AiHasDone1
+      str r11, .WriteString
+      str r6, .WriteUnsignedNum
+      mov r11, #AiHasDone2
+      str r11, .WriteString
+      cmp r1, #1
+      beq AiWins
+      cmp r1, #0
+      beq Draw
+      b GameLoopPlayer
 InvalidInput:
       mov r11, #sauce
       str r11, .WriteString
-      b GameLoop
-GameOver:
-      mov r11, #EndMessage
+      b GameLoopPlayer
+PlayerWin: 
+      mov r11, #PlayerHasWon
       str r11, .WriteString
-      Halt
-Intro: .ASCIZ "Welcome Player!\nPlease enter your name: "
+      b PlayAgain
+AiWins: 
+      mov r11, #AiHasWonMessage
+      str r11, .WriteString
+      b PlayAgain
+Draw: 
+      mov r11, #DrawMessage
+      str r11, .WriteString
+      b PlayAgain
+PlayAgain: 
+      mov r11, #PlayAgainText
+      str r11, .WriteString
+      mov r7, #DesiredInput
+      str r7, .ReadString
+      ldrb r4, [r7]
+      mov r5, #121
+      cmp r4, r5
+      beq ClearRegisters
+      mov r5, #89
+      cmp r4, r5
+      beq ClearRegisters
+      mov r5, #110
+      cmp r4, r5
+      beq EndGame
+      mov r5, #78
+      cmp r4, r5
+      beq EndGame
+      b PlayAgain
+EndGame:
+      mov r11, #ThanksForPlaying
+      str r11, .WriteString
+      halt
+GraphicsRenderer:
+//ClearScreen
+//Draw Player Matchsticks
+//DrawComputerMatchsticks
+//RemoveMatchsticksAnimation
+      halt
+//
+//
+//
+//
+//
+// Strings and memory storage:
+Intro: .ASCIZ "How To Play:\nTake turns removing matchsticks from the pile.\nthe goal is to ensure your oponent picks up the last matchstick\nThe Human Player will allways go first.\nPlease enter your name: "
 MatchstickRequest1: .ASCIZ "\n\nHow many matchsticks to start with?: "
 MatchstickRequest2: .ASCIZ "\n[input MUST be between 10 - 100]"
 PlayerOneIs: .ASCIZ "\n\n\nPlayer One Is: "
 StartingMatchsticks: .ASCIZ "\nStarting Matchsticks: "
-PlayerMatchsticksRemaining1: .ASCIZ "\n\nPlayer "
+PlayerMatchsticksRemaining1: .ASCIZ "\nPlayer "
 PlayerMatchsticksRemaining2: .ASCIZ ", there are "
 PlayerMatchsticksRemaining3: .ASCIZ " matchsticks remaining. "
-PlayerMatchsticksRemaining4: .ASCIZ "How many matchsticks would you like to remove?\n(1 – 7): "
+PlayerMatchsticksRemaining4: .ASCIZ "How many matchsticks would you like to remove? (1 – 7): "
 sauce: .ASCIZ "\nInvalid number — must be between 1 and 7, and not greater than remaining.\n"
-EndMessage: .ASCIZ "\n\nGame Over — all matchsticks have been taken!\n"
+EndMessage: .ASCIZ "\n\nGame Over — all matchsticks have been taken!\nThe Player Has Won"
+AiHasDone1: .ASCIZ "\nAi has removed "
+PlayerHasDone1: .ASCIZ "\nPlayer has removed "
+AiHasDone2: .ASCIZ " Matchsticks"
+AiHasWonMessage: .ASCIZ "\n\nGame Over - All matchsticks have been taken!\nThe Ai Has Won"
+PlayerHasWon: .ASCIZ "\nPlayer, YOU WIN!"
+DrawMessage: .ASCIZ "\nIt's a draw!"
+PlayAgainText: .ASCIZ "\nWould you like to play again? [y/n] "
+ThanksForPlaying: .ASCIZ "\n\n\nThanks for playing! :)"
 Name: .BLOCK 128
+DesiredInput: .BLOCK 128 //Not sure how many blocks i should assign :/
